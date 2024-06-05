@@ -53,15 +53,78 @@ blogRouter.post('/', async (c) => {
 })
 
 // update blog
-blogRouter.put("/", (c) => {
-    return c.text("From blog")
+blogRouter.put("/", async (c) => {
+    const body = await c.req.json()
+    const prisma = new PrismaClient({
+        datasourceUrl: c.env.DATABASE_URL
+    }).$extends(withAccelerate())
+
+    // update title and body
+    const updatedBlog = await prisma.post.update({
+        where: {
+            id: body.id
+        },
+        data: {
+            title: body.title,
+            content: body.content
+        }
+    })
+    if (!updatedBlog) {
+        return c.json({
+            message: "invalid post id"
+        })
+    }
+    return c.json({
+        message: "Post updated Successfully",
+        blog: updatedBlog
+    })
 })
 
+
 // get blog using id
-blogRouter.get('/:id', (c) => {
-    return c.text("From blog id")
+blogRouter.get('/:id', async (c) => {
+    const blogId = c.req.param('id')
+    const prisma = new PrismaClient({
+        datasourceUrl: c.env.DATABASE_URL
+    }).$extends(withAccelerate())
+
+    // Find the specific blog
+    const blog = await prisma.post.findUnique({
+        where: {
+            id: blogId
+        }
+    })
+
+    if (!blog) {
+        c.status(404)
+        return c.json({
+            message: "Not found"
+        })
+    }
+
+    return c.json({
+        message: "Blog fetched Successfully",
+        blog: blog
+    })
 })
-// get all the blogs
-blogRouter.get('/bulk', (c) => {
-    return c.text("from Blog bulk")
+// get all the blogs: TODO - add pagination
+blogRouter.get('/bulk/', async (c) => {
+
+    const prisma = new PrismaClient({
+        datasourceUrl: c.env.DATABASE_URL
+    }).$extends(withAccelerate())
+
+    try {
+        const blogs = await prisma.post.findMany()
+        return c.json({
+            message: "Successfully fetched blogs",
+            blogs: blogs
+
+        })
+    } catch (error) {
+        return c.json({
+            message: "Some error occured",
+            error: error
+        })
+    }
 })
