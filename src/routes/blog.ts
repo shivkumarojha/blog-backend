@@ -108,7 +108,7 @@ blogRouter.get('/:id', async (c) => {
     })
 })
 // get all the blogs: TODO - add pagination
-blogRouter.get('/bulk/', async (c) => {
+blogRouter.get('/post/bulk', async (c) => {
 
     const prisma = new PrismaClient({
         datasourceUrl: c.env.DATABASE_URL
