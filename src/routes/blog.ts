@@ -11,18 +11,27 @@ export const blogRouter = new Hono<{
 }>()
 
 // Middleware for blog router
-blogRouter.use('/*', async (c, next) => {
+blogRouter.use('*', async (c, next) => {
     const authHeader = c.req.header("authorization") || ''
     const token = authHeader.split(" ")[1]
-    const user = await verify(token, c.env.JWT_SECRET)
-    if (user.id) {
-        c.set("jwtPayload", user.id)
+    try {
 
-        await next()
-    } else {
+        const user = await verify(token, c.env.JWT_SECRET)
+        if (user.id) {
+            c.set("jwtPayload", user.id)
+
+            await next()
+        } else {
+            c.status(403)
+            return c.json({
+                message: "Unauthorized"
+            })
+        }
+    } catch (error) {
         c.status(403)
         return c.json({
-            message: "Unauthorized"
+            message: error,
+            error: error
         })
     }
 })
@@ -35,21 +44,29 @@ blogRouter.post('/', async (c) => {
     const prisma = new PrismaClient({
         datasourceUrl: c.env.DATABASE_URL
     }).$extends(withAccelerate())
-    const blog = await prisma.post.create({
-        data: {
-            title: body.title,
-            content: body.content,
-            published: body.published,
-            authorId: payload
-        }
-    })
+    try {
 
-    console.log(blog)
-    c.status(200)
-    return c.json({
-        message: "Post created Successfully",
-        blog: blog
-    })
+        const blog = await prisma.post.create({
+            data: {
+                title: body.title,
+                content: body.content,
+                published: body.published,
+                authorId: payload
+            }
+        })
+
+        console.log(blog)
+        c.status(200)
+        return c.json({
+            message: "Post created Successfully",
+            blog: blog
+        })
+    } catch (error) {
+        c.json({
+            message: "some error occured",
+            error: error
+        })
+    }
 })
 
 // update blog
@@ -59,25 +76,33 @@ blogRouter.put("/", async (c) => {
         datasourceUrl: c.env.DATABASE_URL
     }).$extends(withAccelerate())
 
-    // update title and body
-    const updatedBlog = await prisma.post.update({
-        where: {
-            id: body.id
-        },
-        data: {
-            title: body.title,
-            content: body.content
+    try {
+
+        // update title and body
+        const updatedBlog = await prisma.post.update({
+            where: {
+                id: body.id
+            },
+            data: {
+                title: body.title,
+                content: body.content
+            }
+        })
+        if (!updatedBlog) {
+            return c.json({
+                message: "invalid post id"
+            })
         }
-    })
-    if (!updatedBlog) {
         return c.json({
-            message: "invalid post id"
+            message: "Post updated Successfully",
+            blog: updatedBlog
+        })
+    } catch (error) {
+        return c.json({
+            message: "Some error occured",
+            error: error
         })
     }
-    return c.json({
-        message: "Post updated Successfully",
-        blog: updatedBlog
-    })
 })
 
 
@@ -88,24 +113,32 @@ blogRouter.get('/:id', async (c) => {
         datasourceUrl: c.env.DATABASE_URL
     }).$extends(withAccelerate())
 
-    // Find the specific blog
-    const blog = await prisma.post.findUnique({
-        where: {
-            id: blogId
-        }
-    })
+    try {
 
-    if (!blog) {
-        c.status(404)
+        // Find the specific blog
+        const blog = await prisma.post.findUnique({
+            where: {
+                id: blogId
+            }
+        })
+
+        if (!blog) {
+            c.status(404)
+            return c.json({
+                message: "Not found"
+            })
+        }
+
         return c.json({
-            message: "Not found"
+            message: "Blog fetched Successfully",
+            blog: blog
+        })
+    } catch (error) {
+        return c.json({
+            message: "Some error occured",
+            error: error
         })
     }
-
-    return c.json({
-        message: "Blog fetched Successfully",
-        blog: blog
-    })
 })
 // get all the blogs: TODO - add pagination
 blogRouter.get('/post/bulk', async (c) => {
