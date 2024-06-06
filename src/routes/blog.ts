@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { verify } from "hono/jwt";
 import { PrismaClient } from "@prisma/client/edge";
 import { withAccelerate } from "@prisma/extension-accelerate";
+import { createBlogInput } from "@shivkumarojha/medium-common1.0";
 // intiating a blog router
 export const blogRouter = new Hono<{
     Bindings: {
@@ -41,6 +42,14 @@ blogRouter.use('*', async (c, next) => {
 blogRouter.post('/', async (c) => {
     const payload = c.get("jwtPayload")
     const body = await c.req.json()
+    const parsedData = createBlogInput.safeParse(body)
+
+    if (!parsedData.success) {
+        return c.json({
+            message: "Invalid sign up input",
+            error: parsedData.error
+        })
+    }
     const prisma = new PrismaClient({
         datasourceUrl: c.env.DATABASE_URL
     }).$extends(withAccelerate())
@@ -48,9 +57,9 @@ blogRouter.post('/', async (c) => {
 
         const blog = await prisma.post.create({
             data: {
-                title: body.title,
-                content: body.content,
-                published: body.published,
+                title: parsedData.data.title,
+                content: parsedData.data.content,
+                published: parsedData.data.published,
                 authorId: payload
             }
         })
@@ -72,6 +81,14 @@ blogRouter.post('/', async (c) => {
 // update blog
 blogRouter.put("/", async (c) => {
     const body = await c.req.json()
+
+    const parsedData = createBlogInput.partial().safeParse(body)
+    if (!parsedData.success) {
+        return c.json({
+            message: "Invalid sign up input",
+            error: parsedData.error
+        })
+    }
     const prisma = new PrismaClient({
         datasourceUrl: c.env.DATABASE_URL
     }).$extends(withAccelerate())
@@ -81,11 +98,11 @@ blogRouter.put("/", async (c) => {
         // update title and body
         const updatedBlog = await prisma.post.update({
             where: {
-                id: body.id
+                id: parsedData.data.id
             },
             data: {
-                title: body.title,
-                content: body.content
+                title: parsedData.data.title,
+                content: parsedData.data.content
             }
         })
         if (!updatedBlog) {
