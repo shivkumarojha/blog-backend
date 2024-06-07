@@ -79,9 +79,9 @@ blogRouter.post('/', async (c) => {
 })
 
 // update blog
-blogRouter.put("/", async (c) => {
+blogRouter.put("/:id", async (c) => {
     const body = await c.req.json()
-
+    const blogId = c.req.param('id')
     const parsedData = createBlogInput.partial().safeParse(body)
     if (!parsedData.success) {
         return c.json({
@@ -98,7 +98,7 @@ blogRouter.put("/", async (c) => {
         // update title and body
         const updatedBlog = await prisma.post.update({
             where: {
-                id: parsedData.data.id
+                id: blogId
             },
             data: {
                 title: parsedData.data.title,

@@ -40,7 +40,7 @@ userRouter.post('/signup', async (c) => {
         })
     } catch (error) {
         c.status(403)
-        c.json({
+        return c.json({
             message: "Some error occured while creating user",
             error: error
         })
@@ -76,12 +76,12 @@ userRouter.post('/signin', async (c) => {
             }
         })
         if (!isUser) {
-            c.json({
+            return c.json({
                 message: "email doesn't exist, Kindly sign up"
             })
         }
         if (password !== isUser?.password) {
-            c.json({
+            return c.json({
                 message: "Password didn't matched"
             })
         }
@@ -92,7 +92,7 @@ userRouter.post('/signin', async (c) => {
             token: token
         })
     } catch (error) {
-        c.json({
+        return c.json({
             message: "Something bad happend",
             error: error
         })
