@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import { sign, verify } from 'hono/jwt'
+import { cors } from 'hono/cors'
 
 const app = new Hono<{
   Bindings: {
@@ -8,6 +9,7 @@ const app = new Hono<{
   }
 }>()
 
+app.use('/api/*', cors())
 
 app.get('/', (c) => {
   return c.text('Hello Hono!')
