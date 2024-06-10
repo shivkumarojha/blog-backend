@@ -3,6 +3,7 @@ import { PrismaClient } from "@prisma/client/edge";
 import { withAccelerate } from "@prisma/extension-accelerate";
 import { jwt, sign, verify } from 'hono/jwt'
 import { signInInput, SignInInputType, signUpInput, SignUpInputType } from "@shivkumarojha/medium-common1.0";
+import { logger } from "hono/logger";
 
 export const userRouter = new Hono<{
     Bindings: {
@@ -14,9 +15,14 @@ export const userRouter = new Hono<{
 
 // Me endpoint to check if user is logged in
 userRouter.post('/me', async (c) => {
+
+    console.log("inside me")
+    const authHeader = c.req.header("authorization") || ''
+    console.log(authHeader)
+    const token = authHeader.split(" ")[1]
+    console.log(authHeader)
+
     try {
-        const authHeader = c.req.header("Authorization") || ""
-        const token = authHeader.split(" ")[1]
         const user = await verify(token, c.env.JWT_SECRET)
         if (user) {
             return c.json({
