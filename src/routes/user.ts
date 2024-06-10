@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { PrismaClient } from "@prisma/client/edge";
 import { withAccelerate } from "@prisma/extension-accelerate";
-import { sign, verify } from 'hono/jwt'
+import { jwt, sign, verify } from 'hono/jwt'
 import { signInInput, SignInInputType, signUpInput, SignUpInputType } from "@shivkumarojha/medium-common1.0";
 
 export const userRouter = new Hono<{
@@ -10,6 +10,33 @@ export const userRouter = new Hono<{
         JWT_SECRET: string
     }
 }>()
+
+
+// Me endpoint to check if user is logged in
+userRouter.post('/me', async (c) => {
+    try {
+        const authHeader = c.req.header("Authorization") || ""
+        const token = authHeader.split(" ")[1]
+        const user = await verify(token, c.env.JWT_SECRET)
+        if (user) {
+            return c.json({
+                message: "User Verified and can Login",
+                userId: user.id
+            })
+        }
+        return c.json({
+            message: "Unauthorized"
+        })
+
+    } catch (error) {
+        return c.json({
+            message: "Some Error occured",
+            error: error
+        })
+    }
+})
+
+
 // POST / api / v1 / user / signup
 userRouter.post('/signup', async (c) => {
     const prisma = new PrismaClient({
