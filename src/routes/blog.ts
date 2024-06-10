@@ -81,6 +81,7 @@ blogRouter.post('/', async (c) => {
 // update blog
 blogRouter.put("/:id", async (c) => {
     const body = await c.req.json()
+    const userId = c.get('jwtPayload')
     const blogId = c.req.param('id')
     const parsedData = createBlogInput.partial().safeParse(body)
     if (!parsedData.success) {
@@ -98,7 +99,8 @@ blogRouter.put("/:id", async (c) => {
         // update title and body
         const updatedBlog = await prisma.post.update({
             where: {
-                id: blogId
+                id: blogId,
+                author: userId
             },
             data: {
                 title: parsedData.data.title,
@@ -125,6 +127,7 @@ blogRouter.put("/:id", async (c) => {
 
 // get blog using id
 blogRouter.get('/:id', async (c) => {
+    const userId = c.get('jwtPayload')
     const blogId = c.req.param('id')
     const prisma = new PrismaClient({
         datasourceUrl: c.env.DATABASE_URL
@@ -133,17 +136,17 @@ blogRouter.get('/:id', async (c) => {
     try {
 
         // Find the specific blog
-        const blog = await prisma.post.findUnique({
+        const blog = await prisma.user.findUnique({
             where: {
-                id: blogId
+                id: userId
+            },
+            select: {
+                name: true,
+                id: true
             },
             include: {
-                author: {
-                    select: {
-                        name: true,
-                        id: true
-                    }
-                }
+                post: true
+
             }
         })
 
@@ -167,26 +170,24 @@ blogRouter.get('/:id', async (c) => {
 })
 // get all the blogs: TODO - add pagination
 blogRouter.get('/post/bulk', async (c) => {
-
+    const userId = c.get('jwtPayload')
     const prisma = new PrismaClient({
         datasourceUrl: c.env.DATABASE_URL
     }).$extends(withAccelerate())
 
     try {
-        const blogs = await prisma.post.findMany({
+        const data = await prisma.user.findUnique({
+            where: {
+                id: userId
+            },
             include: {
-                author: {
-                    select: {
-                        email: true,
-                        name: true
-                    }
-                }
+                post: true
 
             }
         })
         return c.json({
             message: "Successfully fetched blogs",
-            blogs: blogs
+            data: data
 
         })
     } catch (error) {
